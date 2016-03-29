@@ -1,0 +1,5 @@
+Review config files before build to set up your environment
+
+usage: ./build.sh [n] <config>
+n - fresh build [makeMk], otherwise r is assumed
+
