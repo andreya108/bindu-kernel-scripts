@@ -54,13 +54,26 @@ EOT
 if [ "$?" = "0" ]; then
     PROJECT_OUT_DIR=$BINDU_BUILD_ROOT/out/target/product/$BUILD_PROJECT_NAME
     echo "$BUILD_ID" >                                      $BINDU_RELEASE_DIR/version.$BUILD_ID
-    cp $PROJECT_OUT_DIR/lk.bin                              $BINDU_RELEASE_DIR/lk.$BUILD_ID.bin
+    [ "$BUILD_LK" = "yes" ] && cp $PROJECT_OUT_DIR/lk.bin   $BINDU_RELEASE_DIR/lk.$BUILD_ID.bin
     cp $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin      $BINDU_RELEASE_DIR/kernel.$BUILD_ID.bin
     cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage $BINDU_RELEASE_DIR/$BUILD_ID.zImage
     cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/Image  $BINDU_RELEASE_DIR/$BUILD_ID.Image
 
-#    echo "call kpack.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin" >> $OUTDIR/process.cmd
-    echo "call kpack2.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin lk.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process2.cmd
+    case "$PACK_METHOD" in
+        kpack)
+            echo "call kpack.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process.cmd
+            ;;
+        kpack2)
+            echo "call kpack2.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin lk.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process2.cmd
+            ;;
+        zImage)
+            echo "copy $BUILD_ID.zImage d:\\Yandex.Disk\\share\\bindu-kernel\\$BUILD_PROJECT_NAME" >> $BINDU_RELEASE_DIR/processz.cmd
+            ;;
+        *)
+            echo "Unknown kernel packing!"
+            exit 1;
+            ;;
+    esac
 else
     echo "Build failed!" 1>&2
     exit 1
