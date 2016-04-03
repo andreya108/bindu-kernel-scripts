@@ -11,6 +11,7 @@ if [ -z "$1" ]
 fi
 
 BUILD_PROJECT_NAME=$1
+shift
 M=r
 if [ ! -z "$2" ]
   then
@@ -48,7 +49,7 @@ EOT
 
 ( cd $BINDU_BUILD_ROOT
   [ "$BUILD_LK" = "yes" ] && ./makeMtk $1 $M lk
-  ./makeMtk $1 $M k
+  ./makeMtk -t $1 $M k
 )
 
 if [ "$?" = "0" ]; then
@@ -67,6 +68,7 @@ if [ "$?" = "0" ]; then
             echo "call kpack2.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin lk.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process2.cmd
             ;;
         zImage)
+            cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage ~/YD.share/bindu-kernel/$BUILD_PROJECT_NAME/$BUILD_ID.zImage
             echo "copy $BUILD_ID.zImage d:\\Yandex.Disk\\share\\bindu-kernel\\$BUILD_PROJECT_NAME" >> $BINDU_RELEASE_DIR/processz.cmd
             ;;
         *)
