@@ -60,6 +60,7 @@ if [ "$?" = "0" ]; then
     cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage $BINDU_RELEASE_DIR/$BUILD_ID.zImage
     cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/Image  $BINDU_RELEASE_DIR/$BUILD_ID.Image
 
+    echo "Kernel pack method: $PACK_METHOD":
     case "$PACK_METHOD" in
         kpack)
             echo "call kpack.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process.cmd
