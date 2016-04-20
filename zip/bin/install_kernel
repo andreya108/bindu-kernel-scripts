@@ -1,0 +1,104 @@
+#!/bin/sh
+
+OUTFD=$1
+
+tmp=/cache/rtmp
+log=/cache/recovery/kinstall.log
+version=$(cat /tmp/bindu/version)
+kernel=/tmp/bindu/kernel.bin
+lk=/tmp/bindu/lk.bin
+bootimg=$tmp/boot.img
+newbootimg=$tmp/newboot.img
+blocksize=2048
+pdev='/dev/block/mmcblk0'
+
+ui_print() {
+  echo -n -e "ui_print $1\n" > /proc/self/fd/$OUTFD
+  echo -n -e "ui_print\n" > /proc/self/fd/$OUTFD
+}
+
+log_print() {
+    echo "$1" >> $log
+}
+
+error_exit()
+{
+    ui_print "! Error: $1"
+    log_print "Error: $1"
+    exit 1
+}
+
+ui_print " "
+ui_print "********************************************"
+ui_print "         Bindu Kernel installer v0.2"
+ui_print "********************************************"
+ui_print " Kernel version: $version"
+ui_print " "
+
+[ ! -f $kernel ] && error_exit "No kernel found!"
+
+# init bootimg data
+bootimg_dinfo=$(cat /proc/dumchar_info | grep bootimg)
+eval "set -A bootimg_p $bootimg_dinfo"
+bootimg_pdev="${bootimg_p[4]}"
+bootimg_poff=$(( ${bootimg_p[2]} / $blocksize ))
+bootimg_psize=$(( ${bootimg_p[1]} / $blocksize ))
+
+# $1 - partition
+# $2 - out file
+extract_image()
+{
+    dinfo=$(cat /proc/dumchar_info | grep $1)
+    eval "set -A pp $dinfo"
+    poff=$(( ${pp[2]} / $blocksize ))
+    psize=$(( ${pp[1]} / $blocksize ))
+
+    ui_print "- Extracting '$1' from $pdev"
+    log_print "Extracting $1 @ $pdev to $2, off=${pp[2]}:$poff size=${pp[1]}:$psize"
+    log_print "dd if=$pdev of=$2 bs=$blocksize skip=$poff count=$psize"
+    dd if=$pdev of=$2 bs=$blocksize skip=$poff count=$psize 2>>$log
+}
+
+# $1 - partition
+# $2 - file
+flash_image()
+{
+    dinfo=$(cat /proc/dumchar_info | grep $1)
+    eval "set -A pp $dinfo"
+    poff=$(( ${pp[2]} / $blocksize ))
+    psize=$(( ${pp[1]} / $blocksize ))
+
+    ui_print "- Flashing new '$1' to $pdev"
+    log_print "Flashing $2 to $1 @ $pdev, off=${pp[2]}:$poff size=${pp[1]}:$psize"
+    log_print "dd of=$pdev if=$2 bs=$blocksize seek=$poff count=$psize"
+    dd of=$pdev if=$2 bs=$blocksize seek=$poff count=$psize 2>>$log
+}
+
+log_print "Kernel update started: $version"
+
+mkdir -p $tmp
+extract_image "bootimg" $bootimg || error_exit "Cannot extract bootimg"
+
+ui_print "- Unpacking BOOTIMG"
+/bin/unpackbootimg -i $bootimg -o $tmp >> $log
+
+ui_print "- Updating kernel"
+cp $kernel $bootimg-zImage
+
+ui_print "- Repacking BOOTIMG"
+kbase=`cat $bootimg-base`
+cmdline=`cat $bootimg-cmdline`
+ui_print "* cmdline: '$cmdline'"
+pagesize=`cat $bootimg-pagesize`
+/bin/mkbootimg --kernel $bootimg-zImage --ramdisk $bootimg-ramdisk.gz --cmdline "$cmdline" --pagesize $pagesize --base $kbase -o $newbootimg >> $log
+
+flash_image "bootimg" $newbootimg || error_exit "Cannot flash bootimg"
+if [ -f "$lk" ]; then
+    flash_image "uboot" $lk || error_exit "Cannot flash uboot"
+fi
+
+ui_print "- Removing temp files"
+rm -rf $tmp
+
+ui_print "+ Kernel installed!"
+log_print "OK\n"

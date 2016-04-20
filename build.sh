@@ -1,6 +1,26 @@
 #!/bin/bash
 
 BASE_DIR=`dirname $(readlink -e $0)`
+ZIP_BASE=$BASE_DIR/zip
+TMP=$BASE_DIR/tmp
+
+create_zip()
+{
+    local zip=$1
+    (
+        cd $ZIP_BASE
+        zip -r $TMP/$zip *
+    )
+}
+
+upload_bb()
+{
+    local file=$1
+    local dir=bindu-kernel/$2
+    local targetname=$3
+
+    basketbuild_upload $file $dir $targetname
+}
 
 if [ -z "$1" ]
   then
@@ -31,6 +51,7 @@ BUILD=$(($BINDU_BUILD+1))
 echo "$BUILD" > $BINDU_BUILDSTORE
 
 BUILD_ID="$BUILD_PROJECT_NAME-$BINDU_VERSION.$BUILD$EXTRA-$TOOLCHAIN";
+ALT_BUILD_ID="$MODEL-$BINDU_VERSION.$BUILD$EXTRA-$TOOLCHAIN";
 
 export KBUILD_BUILD_USER=bindu-kernel
 export KBUILD_BUILD_HOST="$MODEL"
@@ -62,6 +83,19 @@ if [ "$?" = "0" ]; then
 
     echo "Kernel pack method: $PACK_METHOD":
     case "$PACK_METHOD" in
+        zip-bb)
+            echo "$ALT_BUILD_ID" > $ZIP_BASE/version
+            cp $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin $ZIP_BASE/kernel.bin
+            rm $ZIP_BASE/lk.bin
+            [ "$BUILD_LK" = "yes" ] && cp $PROJECT_OUT_DIR/lk.bin $ZIP_BASE/
+            ZIP="bindu-kernel-$BUILD_ID.zip"
+            create_zip $ZIP
+            upload_bb $TMP/$ZIP $MODEL
+            ;;
+        zImage-bb)
+            upload_bb $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage $MODEL $ALT_BUILD_ID.zImage
+            upload_bb $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin $MODEL kernel.$ALT_BUILD_ID.bin
+            ;;
         kpack)
             echo "call kpack.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process.cmd
             ;;
@@ -71,6 +105,7 @@ if [ "$?" = "0" ]; then
         zImage)
             mkdir -p ~/YD.share/bindu-kernel/$BUILD_PROJECT_NAME
             cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage ~/YD.share/bindu-kernel/$BUILD_PROJECT_NAME/$BUILD_ID.zImage
+            cp $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin      ~/YD.share/bindu-kernel/$BUILD_PROJECT_NAME/kernel.$BUILD_ID.bin
             echo "copy $BUILD_ID.zImage d:\\Yandex.Disk\\share\\bindu-kernel\\$BUILD_PROJECT_NAME" >> $BINDU_RELEASE_DIR/processz.cmd
             ;;
         *)

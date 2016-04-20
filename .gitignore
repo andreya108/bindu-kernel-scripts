@@ -1,0 +1,4 @@
+zip/kernel.bin
+zip/version
+tmp/**/*
+bb*
