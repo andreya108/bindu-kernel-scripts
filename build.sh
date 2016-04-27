@@ -65,6 +65,7 @@ Toolchain Id           : $TOOLCHAIN
 Toolchain path         : $TC_PATH
 KBUILD_BUILD_HOST      : $KBUILD_BUILD_HOST
 EXTRAVERSION           : $EXTRAVERSION
+Deploy method          : $PACK_METHOD
 =============================================================
 EOT
 
@@ -92,9 +93,15 @@ if [ "$?" = "0" ]; then
             create_zip $ZIP
             upload_bb $TMP/$ZIP $MODEL
             ;;
-        zImage-bb)
-            upload_bb $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage $MODEL $ALT_BUILD_ID.zImage
-            upload_bb $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin $MODEL kernel.$ALT_BUILD_ID.bin
+        zImage-zip-bb)
+            mkdir -p $TMP/$MODEL
+            cp $PROJECT_OUT_DIR/obj/KERNEL_OBJ/arch/arm/boot/zImage $TMP/$MODEL/$ALT_BUILD_ID.zImage
+            cp $PROJECT_OUT_DIR/kernel_$BUILD_PROJECT_NAME.bin $TMP/$MODEL/kernel.$ALT_BUILD_ID.bin
+            (
+                cd $TMP/$MODEL
+                zip -0 $ALT_BUILD_ID.zip $ALT_BUILD_ID.zImage kernel.$ALT_BUILD_ID.bin
+                upload_bb $ALT_BUILD_ID.zip $MODEL
+            )
             ;;
         kpack)
             echo "call kpack.cmd $BUILD_PROJECT_NAME $BUILD_ID kernel.$BUILD_ID.bin" >> $BINDU_RELEASE_DIR/process.cmd
