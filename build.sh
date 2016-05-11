@@ -19,7 +19,11 @@ upload_bb()
     local dir=bindu-kernel/$2
     local targetname=$3
 
-    basketbuild_upload $file $dir $targetname
+    if [ -f $BASE_DIR/no-upload ]; then
+        echo "Skipping upload!"
+    else
+        basketbuild_upload $file $dir $targetname
+    fi
 }
 
 if [ -z "$1" ]
