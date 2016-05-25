@@ -26,6 +26,13 @@ upload_bb()
     fi
 }
 
+adb_push()
+{
+    local file=$1
+    local dir=$ADB_PUSH_DIR
+    [ -z $dir ] || adb push $file $dir
+}
+
 if [ -z "$1" ]
   then
     echo "No argument supplied"
@@ -95,6 +102,7 @@ if [ "$?" = "0" ]; then
             [ "$BUILD_LK" = "yes" ] && cp $PROJECT_OUT_DIR/lk.bin $ZIP_BASE/
             ZIP="bindu-kernel-$BUILD_ID.zip"
             create_zip $ZIP
+            adb_push $TMP/$ZIP
             upload_bb $TMP/$ZIP $MODEL
             ;;
         zImage-zip-bb)
